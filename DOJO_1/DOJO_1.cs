@@ -49,6 +49,7 @@ dd/mm/2023	1.0.0.1		XXX, Skyline	Initial version
 ****************************************************************************
 */
 
+using System.Collections.Concurrent;
 using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
 namespace DOJO_1
@@ -78,7 +79,6 @@ namespace DOJO_1
 			{
 				_controller = new InteractiveController(engine);
 				var dialog = new MyDialog(_controller);
-				dialog.myButton.Pressed += Button_Pressed;
 
 				_controller.Run(dialog);
 			}
@@ -91,12 +91,6 @@ namespace DOJO_1
 				engine.ExitFail("Something went wrong: " + e);
 			}
 		}
-
-		public void Button_Pressed(object sender, EventArgs e)
-		{
-			_controller.Engine.Log("Entering Event");
-			_controller.Engine.ExitSuccess("0");
-		}
 	}
 
 	internal class MyDialog : Dialog
@@ -106,11 +100,26 @@ namespace DOJO_1
 		public MyDialog(InteractiveController controller) : base(controller.Engine)
 		{
 			_controller = controller;
-			Title = "Dojo Test";
-			myButton = new Button("Press me");
+			Title = "Add Fields";
+			myButton = new Button("+");
 			AddWidget(myButton, 0, 0);
+
+			myButton.Pressed += Button_Pressed;
 		}
 
 		public Button myButton { get; set; }
+
+		private object myLock = new object();
+		private readonly List<TextBox> myTextBoxes = new List<TextBox>();
+
+		public void Button_Pressed(object sender, EventArgs e)
+		{
+			lock (myLock)
+			{
+				var tb = new TextBox($"Field {myTextBoxes.Count + 1}");
+				AddWidget(tb, myTextBoxes.Count, 1);
+				myTextBoxes.Add(tb);
+			}
+		}
 	}
 }
